@@ -41,7 +41,17 @@
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
+FitFindr takes a plain-language request like "vintage graphic tee under $30, size M" and searches a listings file for matches. It picks the top result, suggests outfits that pair it with the user's wardrobe, and writes a short caption they could post. If nothing matches, it stops and says what to change instead of running the later steps.
 
+## Planning Loop
+
+**Branch rule:** If `search_listings` returns an empty list, write a message to `session["error"] ` naming the description, size, and price it tried and what to loosen, then stop. Otherwise, store the first result as `session["selected_item"]` and go to `suggest_outfit`, then `create_fit_card`.
+
+**Where it lives:** `agent.py::run_agent`
+
+**How the query is parsed:** Regex for size and max price, then a stopword strip for the description (`agent.py::parse_query`). No model call.
+
+**What moves through the session:** `query` -> `parsed` -> `search_results` -> `selected_item` -> `outfit_suggestion` -> `fit_card`. `error` is set only when the run stops early. Each tool reads its input from the session, not from the previous return value.
 
 ---
 
@@ -147,15 +157,15 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Implementations of all three tools in `tools.py`, using the spec: filter on all three inputs, return `[]` on no match, general advice for an empty wardrobe.
+- *What came back:* A `search_listings` that filtered on size, price, and keywords, plus two model-backed tools. It guessed the loader and adapter names and treated the wardrobe as a list of strings.
+- *What I changed:* [your real changes, e.g. the actual loader and adapter names, and reading the wardrobe dict's real key instead of iterating the dict]
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* `run_agent()` following my branch rule, with every result going through the session.
+- *What came back:* A loop that checks the session each pass to pick the next step, a regex query parser, and a no-match message naming the query and what to change. `suggest_outfit` returned a list, so it passed the first outfit string to `create_fit_card`.
+- *What I changed:* [your real changes, e.g. parser edge cases you found, or the message wording. If you changed nothing, say that.]
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 

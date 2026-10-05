@@ -3,20 +3,6 @@
 Five criteria that say what "working" means for this agent, written in unit 3
 **before** any results existed.
 
-An acceptance criterion names a target: a number, a count, a rate, or something
-a person could plainly observe. *"The agent handles errors"* is an opinion.
-*"When search returns nothing, the agent stops before calling the second tool,
-in 5 of 5 tries"* is a criterion.
-
-Under each one, write a sentence or two on **why that target** and not a
-stricter one. A reason that says something about your tools, your loop, or the
-data earns credit; *"80% seemed reasonable"* does not.
-
-> Missing your own targets next unit costs you nothing. Setting a target so
-> easy you can't miss it does.
-
-**Two are written for you. You write three.**
-
 ---
 
 ## 1. A matching query completes all three tools
@@ -25,9 +11,11 @@ Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
 **Why this target:**
-<!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
-     "my search is a plain keyword match and some phrasings will miss" is a
-     real answer. -->
+My search is a plain keyword match, and the query parser is regex plus a
+stopword strip, so an odd phrasing can leave a description that matches nothing.
+Two of the three tools also call a model, which can fail or return an empty
+caption. 5 of 5 would punish me for things outside my control. 4 of 5 still
+means the normal path works.
 
 ---
 
@@ -37,66 +25,54 @@ Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
 **Why this target:**
-<!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+This path never touches the model. The branch in `run_agent` is a plain
+empty-list check on the output of a filter written in ordinary Python, so the
+same input gives the same result every time. If it misses once, that is a bug
+in my code, not noise.
 
 ---
 
-## 3. Something about state
+## 3. The selected item is the one `suggest_outfit` receives
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
-
-
+Across 5 runs of a matching query, the `new_item` that arrives at
+`suggest_outfit` has the same `title` and `price` as `session["selected_item"]`
+in 5 of 5 runs. I check by printing `new_item` at the top of `suggest_outfit`
+and comparing it to the session after the run.
 
 **Why this target:**
-
-
+State handling is plain dictionary reads and writes with no model in the path,
+so there is nothing random to excuse a mismatch. A mismatch would mean the loop
+passed a stale or wrong item, which is the exact failure the session exists to
+prevent. Anything under 5 of 5 means the session is broken.
 
 ---
 
-## 4. Something about the fit card
+## 4. The fit card is postable and mentions the price
 
-<!-- YOU WRITE THIS ONE.
-
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
-
-
+For 5 different items, at least 4 of 5 fit cards are 200 characters or fewer
+and contain the item's price.
 
 **Why this target:**
-
-
+The caption comes from a model, so the wording changes between runs and I can't
+require exact text. Length and the price are things I can count. I allow one
+miss in 5 because a model at a nonzero temperature will occasionally run long or
+leave the price out, and requiring 5 of 5 would mostly measure luck. I don't
+check tone here because I can't score it with a number.
 
 ---
 
-## 5. Your choice
+## 5. The price ceiling is respected
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
-
-
+For 5 queries that each include a max price, every listing `search_listings`
+returns costs no more than that ceiling, in 5 of 5 queries. A listing priced
+exactly at the ceiling counts as a match.
 
 **Why this target:**
-
-
+The price filter is a single comparison in `search_listings`, with no model and
+no parsing ambiguity once `max_price` is a float. It has to be 5 of 5 because
+one result over the limit means the user sees something they said they
+couldn't afford. The one place it can break is the parser reading the wrong
+number out of the query, so the test queries should include a size number too.
 
 ---
 

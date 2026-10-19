@@ -91,6 +91,33 @@ _SIZE_WAIST = re.compile(r"\bw(\d{2})\b", re.I)
 _SIZE_BARE = re.compile(r"\b(xxs|xs|xl|xxl)\b", re.I)
 
 
+def _normalise_size(size: str | None) -> str | None:
+    """Put a bare waist number into the form the listings actually use.
+
+    THE UNIT 4 IMPROVEMENT. The listings write waist sizes as one token — "W30",
+    "W28", "W30 L30" — and `tools._size_matches` matches whole tokens, so a user
+    who types the entirely natural "jeans size 30" produces size="30", which is
+    not a token of "W30", and the search returns nothing. Seven of the forty
+    listings are sized this way, so the whole bottoms category was unreachable
+    by the most obvious phrasing for it.
+
+    The band is 24 to 44. Below it sits shoe sizing, which already works —
+    "size 8" gives "8", and that IS a token of "US 8", so it matches without
+    help. Above 44 is not a waist anyone in this data has. Letter sizes are
+    untouched.
+
+    Dress sizing would collide with this band, and in a catalogue that used it
+    this rule would be wrong. This one doesn't: every numeric size in
+    data/listings.json is either a US shoe size (7 to 9) or a W-waist (27 to
+    32), with nothing in between.
+    """
+    if not size:
+        return size
+    if re.fullmatch(r"\d{2}", size) and 24 <= int(size) <= 44:
+        return f"W{size}"
+    return size
+
+
 def parse_query(query: str) -> dict:
     """
     Pull a description, a size and a max price out of plain language.
@@ -128,6 +155,8 @@ def parse_query(query: str) -> dict:
             size = template.format(match.group(1)).upper()
             text = text[: match.start()] + " " + text[match.end() :]
             break
+
+    size = _normalise_size(size)
 
     # 3. Whatever is left, minus the stopwords, is the description.
     words = [w for w in re.findall(r"[A-Za-z0-9']+", text) if w.lower() not in _STOPWORDS]

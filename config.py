@@ -62,6 +62,15 @@ MAX_ITERATIONS = 10
 SEARCH_RESULT_LIMIT = 10
 
 
+# ─── MCP (unit 4, Milestone 1) ───────────────────────────────────────────────
+# search_listings is the tool that moved onto MCP. With this True, run_agent
+# reaches it through mcp_client.call_tool — a separate process, over stdio —
+# instead of importing it. The direct path is kept rather than deleted so the
+# two can be compared rather than assumed identical: AI201_MCP=0 runs the
+# import, and the before/after of the move is then a measurement.
+USE_MCP = os.getenv("AI201_MCP", "1") != "0"
+
+
 # ─── Model ───────────────────────────────────────────────────────────────────
 
 MODEL = os.getenv("AI201_MODEL", "gemini-3.5-flash-lite")

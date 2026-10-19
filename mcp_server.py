@@ -67,24 +67,46 @@ from tools import search_listings as _search_listings_impl  # noqa: F401 — you
 mcp = FastMCP("fitfindr", log_level="WARNING")
 
 
-# ── TODO: uncomment and fill this in ──────────────────────────────────────────
-#
-# @mcp.tool()
-# def search_listings(
-#     description: str,
-#     size: str | None = None,
-#     max_price: float | None = None,
-# ) -> list[dict]:
-#     """
-#     <-- YOUR DESCRIPTION GOES HERE.
-#
-#         One or two sentences. What does this tool do, what does it need, and
-#         what does it give back when it finds nothing? Written for a reader
-#         who cannot see the code.
-#     """
-#     return _search_listings_impl(description, size, max_price)
-#
-# ──────────────────────────────────────────────────────────────────────────────
+@mcp.tool()
+def search_listings(
+    description: str,
+    size: str | None = None,
+    max_price: float | None = None,
+) -> list[dict]:
+    """Search a fixed catalogue of 40 secondhand clothing listings and return the
+    closest matches, best first.
+
+    `description` is free text naming the garment ("vintage graphic tee", "90s
+    track jacket"). It is matched by keyword overlap against each listing's
+    title, description, category, brand, style tags and colours, with a hit in
+    the title counted double. This is a keyword match and not a semantic one:
+    "outerwear" will not find a listing that only ever says "jacket".
+
+    `size` is an optional garment size written the way the listings write it —
+    a letter size ("S", "M", "L", "XL"), a US shoe size ("US 9", "US 8.5") or a
+    waist ("W30"). Matching is token-wise and inclusive, so "M" matches a
+    listing sized "S/M" or "M/L", while "L" does not match "XL". Omit it to
+    search every size.
+
+    `max_price` is an optional ceiling in US dollars, as a number rather than a
+    string and with no currency symbol — 30 or 29.99, never "$30". It is
+    inclusive: a listing priced exactly at the ceiling is returned. Omit it to
+    search at any price.
+
+    Returns a JSON array of at most 10 listing objects, each with the keys: id
+    (string), title (string), description (string), category (string: one of
+    tops, bottoms, outerwear, shoes, accessories), style_tags (array of
+    strings), size (string), condition (string: excellent, good or fair), price
+    (number, US dollars), colors (array of strings), brand (string or null) and
+    platform (string: depop, thredUp or poshmark).
+
+    Returns an empty array when nothing matches. That is a normal, successful
+    result and not an error — it means the size or price filter excluded
+    everything, or no listing shared a keyword with the description. A caller
+    should treat it as "tell the user what to loosen" rather than retrying: the
+    search is deterministic, so an identical call returns empty again.
+    """
+    return _search_listings_impl(description, size, max_price)
 #
 # Two notes on the block above.
 #
